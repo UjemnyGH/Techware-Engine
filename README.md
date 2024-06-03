@@ -1,5 +1,5 @@
+<h1 align="center">Techware Engine</h1>
 <p align="center"><img height="512px" src="tweLogo.png" alt="Techware Engine Logo"></p>
-<b align="center" style="font-size: 100px;">Techware Engine</b><br>
 
 <h2 align="center">Engine that focus on graphics</h2>
 
