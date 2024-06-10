@@ -147,6 +147,11 @@ namespace te {
         }
     } GLArray;
 
+    typedef struct GLBufferPtrData {
+        uint32_t mIndex, mDimmension, mSize, mOffset;
+        uint32_t mType = GL_FLOAT;
+    } GLBufferPtrData;
+
     typedef struct GLBuffer {
         uint32_t mId;
         bool mCreated = false;
@@ -172,6 +177,15 @@ namespace te {
             glEnableVertexAttribArray(index);
         }
 
+        void BindPtr(std::vector<GLBufferPtrData> data) {
+            Bind();
+
+            for(GLBufferPtrData & d : data) {
+                glVertexAttribPointer(d.mIndex, d.mDimmension, d.mType, GL_FALSE, d.mSize, (void*)d.mOffset);
+                glEnableVertexAttribArray(d.mIndex);
+            }
+        }
+
         void BindData(std::vector<float> data) {
             Bind();
 
@@ -186,6 +200,154 @@ namespace te {
             }
         }
     } GLBuffer;
+
+    typedef struct GLTexture {
+        uint32_t mId;
+        bool mCreated = false;
+
+        void Init() {
+            if(!mCreated) {
+                glGenTextures(1, &mId);
+
+                mCreated = true;
+            }
+        }
+
+        void Bind() {
+            Init();
+
+            glBindTexture(GL_TEXTURE_2D_ARRAY, mId);
+        }
+
+        void BindUnit(uint32_t unit) {
+            Init();
+
+            glBindTextureUnit(unit, mId);
+        }
+
+        void BindData(std::vector<uint8_t> data, uint32_t width, uint32_t height, uint32_t layers) {
+            Bind();
+
+            glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, width, height, layers);
+            glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, width, height, layers, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 32);
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        }
+
+        ~GLTexture() {
+            if(mCreated) {
+                glGenTextures(1, &mId);
+
+                mCreated = false;
+            }
+        }
+    } GLTexture;
+
+    typedef struct GLFramebuffer {
+        uint32_t mId, mTId;
+        bool mCreated = false, mTCreated = false;
+
+        void Init() {
+            if(!mCreated) {
+                glGenFramebuffers(1, &mId);
+
+                mCreated = true;
+            }
+        }
+
+        void Bind() {
+            Init();
+
+            glBindFramebuffer(GL_FRAMEBUFFER, mId);
+        }
+
+        void Unbind() {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+
+        void GetDepthStencil(int width, int height) {
+            Bind();
+
+            if(!mTCreated) {
+                glGenTextures(1, &mTId);
+
+                mTCreated = true;
+            }
+
+            glBindTexture(GL_TEXTURE_2D, mTId);
+
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, mTId, 0);
+
+            Unbind();
+        }
+
+        void GetDepth(int width, int height) {
+            Bind();
+
+            if(!mTCreated) {
+                glGenTextures(1, &mTId);
+
+                mTCreated = true;
+            }
+
+            glBindTexture(GL_TEXTURE_2D, mTId);
+
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, mTId, 0);
+
+            glDrawBuffer(GL_NONE);
+            glReadBuffer(GL_NONE);
+
+            Unbind();
+        }
+
+        void GetColor(int width, int height) {
+            Bind();
+
+            if(!mTCreated) {
+                glGenTextures(1, &mTId);
+
+                mTCreated = true;
+            }
+
+            glBindTexture(GL_TEXTURE_2D, mTId);
+
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_FLOAT, nullptr);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mTId, 0);
+
+            Unbind();
+        }
+
+        ~GLFramebuffer() {
+            if(mCreated) {
+                glDeleteFramebuffers(1, &mId);
+            
+                mCreated = false;
+            }
+
+            if(mTCreated) {
+                glDeleteTextures(1, &mTId);
+
+                mTCreated = false;
+            }
+        }
+    } GLFramebuffer;
 }
 
 #endif
