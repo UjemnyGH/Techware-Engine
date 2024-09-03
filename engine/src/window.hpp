@@ -35,6 +35,7 @@ namespace te {
 
     public:
         static Window* pGlobal;
+        double mDeltaTime = 0.0, mTime = 0.0, mLastTime = 0.0;
 
         Window() {
             if(!pGlobal) {
@@ -92,6 +93,10 @@ namespace te {
             fixed_update_thread.detach();
 
             while(!(mWindowClosed = glfwWindowShouldClose(mWindowPtr))) {
+                mTime = glfwGetTime();
+                mDeltaTime = mTime - mLastTime;
+                mLastTime = mTime;
+
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 

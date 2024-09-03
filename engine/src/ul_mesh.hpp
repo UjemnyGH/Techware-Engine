@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <vector>
+#include <bit>
 
 enum {
     ULMtype_ply,
@@ -321,27 +322,27 @@ int __ulMeshLoadPLY(ul_mesh_t* pMesh, const char* path) {
             if(vertex_counter < vertex_amount) {
                 if(prop_vertices != (uint8_t*)0) {
                     convert = (uint32_t)ch | (uint32_t)fgetc(mesh_file) << 8 | (uint32_t)fgetc(mesh_file) << 16 | (uint32_t)fgetc(mesh_file) << 24;
-                    temp.vertices.push_back(*(float*)&convert);
+                    temp.vertices.push_back(std::bit_cast<float, uint32_t>(convert));
                     convert = (uint32_t)fgetc(mesh_file) | (uint32_t)fgetc(mesh_file) << 8 | (uint32_t)fgetc(mesh_file) << 16 | (uint32_t)fgetc(mesh_file) << 24;
-                    temp.vertices.push_back(*(float*)&convert);
+                    temp.vertices.push_back(std::bit_cast<float, uint32_t>(convert));
                     convert = (uint32_t)fgetc(mesh_file) | (uint32_t)fgetc(mesh_file) << 8 | (uint32_t)fgetc(mesh_file) << 16 | (uint32_t)fgetc(mesh_file) << 24;
-                    temp.vertices.push_back(*(float*)&convert);
+                    temp.vertices.push_back(std::bit_cast<float, uint32_t>(convert));
                 }
 
                 if(prop_normals != (uint8_t*)0) {
                     convert = (uint32_t)fgetc(mesh_file) | (uint32_t)fgetc(mesh_file) << 8 | (uint32_t)fgetc(mesh_file) << 16 | (uint32_t)fgetc(mesh_file) << 24;
-                    temp.normals.push_back(*(float*)&convert);
+                    temp.normals.push_back(std::bit_cast<float, uint32_t>(convert));
                     convert = (uint32_t)fgetc(mesh_file) | (uint32_t)fgetc(mesh_file) << 8 | (uint32_t)fgetc(mesh_file) << 16 | (uint32_t)fgetc(mesh_file) << 24;
-                    temp.normals.push_back(*(float*)&convert);
+                    temp.normals.push_back(std::bit_cast<float, uint32_t>(convert));
                     convert = (uint32_t)fgetc(mesh_file) | (uint32_t)fgetc(mesh_file) << 8 | (uint32_t)fgetc(mesh_file) << 16 | (uint32_t)fgetc(mesh_file) << 24;
-                    temp.normals.push_back(*(float*)&convert);
+                    temp.normals.push_back(std::bit_cast<float, uint32_t>(convert));
                 }
 
                 if(prop_texpos != (uint8_t*)0) {
                     convert = (uint32_t)fgetc(mesh_file) | (uint32_t)fgetc(mesh_file) << 8 | (uint32_t)fgetc(mesh_file) << 16 | (uint32_t)fgetc(mesh_file) << 24;
-                    temp.textureCoordinates.push_back(*(float*)&convert);
+                    temp.textureCoordinates.push_back(std::bit_cast<float, uint32_t>(convert));
                     convert = (uint32_t)fgetc(mesh_file) | (uint32_t)fgetc(mesh_file) << 8 | (uint32_t)fgetc(mesh_file) << 16 | (uint32_t)fgetc(mesh_file) << 24;
-                    temp.textureCoordinates.push_back(*(float*)&convert);
+                    temp.textureCoordinates.push_back(std::bit_cast<float, uint32_t>(convert));
                 }
 
                 vertex_counter++;
@@ -469,7 +470,7 @@ int __ulMeshLoadOBJ(ul_mesh_t* pMesh, const char* path) {
     uint32_t len = ftell(mesh_file);
     fseek(mesh_file, 0, SEEK_SET);
 
-    char *line = new char[len]; // (char*)calloc(len, sizeof(char));
+    char* line = new char[len]; // (char*)calloc(len, sizeof(char));
 
     float* temp_vert = (float*)0;
     float* temp_norm = (float*)0;
@@ -513,7 +514,7 @@ int __ulMeshLoadOBJ(ul_mesh_t* pMesh, const char* path) {
             int slashes = 0;
             int no_textures = 0;
 
-            for(int i = 0; i < len; i++) {
+            for(uint32_t i = 0; i < len; i++) {
                 if(line[i] == 0) break;
 
                 if(line[i] == '/') slashes++;
@@ -659,7 +660,7 @@ int __ulMeshLoadOBJ(ul_mesh_t* pMesh, const char* path) {
     temp_texc = (float*)0;
     tt_size = 0;
 
-    free(line);
+    delete[] line;
     fclose(mesh_file);
 
     return 1;
@@ -689,6 +690,7 @@ int __ulMeshLoadSTL(ul_mesh_t* pMesh, const char* path) {
 
     // It ain`t used
     uint32_t number_of_triangles = (uint32_t)fgetc(mesh_file) | (uint32_t)fgetc(mesh_file) << 8 | (uint32_t)fgetc(mesh_file) << 16 | (uint32_t)fgetc(mesh_file) << 24; 
+    number_of_triangles = number_of_triangles;
 
     while(!feof(mesh_file)) {
         if(is_ascii) {
@@ -791,26 +793,27 @@ int __ulMeshLoadSTL(ul_mesh_t* pMesh, const char* path) {
             uint32_t vertex_z2 = (uint32_t)fgetc(mesh_file) | (uint32_t)fgetc(mesh_file) << 8 | (uint32_t)fgetc(mesh_file) << 16 | (uint32_t)fgetc(mesh_file) << 24; 
             // Basicly thrash bytes, always set to 0
             uint16_t attrib_count = (uint16_t)fgetc(mesh_file) | (uint16_t)fgetc(mesh_file) << 8;
+            attrib_count = attrib_count;
 
-            pMesh->vertices.push_back(*(float*)&vertex_x0);
-            pMesh->vertices.push_back(*(float*)&vertex_y0);
-            pMesh->vertices.push_back(*(float*)&vertex_z0);
-            pMesh->vertices.push_back(*(float*)&vertex_x1);
-            pMesh->vertices.push_back(*(float*)&vertex_y1);
-            pMesh->vertices.push_back(*(float*)&vertex_z1);
-            pMesh->vertices.push_back(*(float*)&vertex_x2);
-            pMesh->vertices.push_back(*(float*)&vertex_y2);
-            pMesh->vertices.push_back(*(float*)&vertex_z2);
+            pMesh->vertices.push_back(std::bit_cast<float, uint32_t>(vertex_x0));
+            pMesh->vertices.push_back(std::bit_cast<float, uint32_t>(vertex_y0));
+            pMesh->vertices.push_back(std::bit_cast<float, uint32_t>(vertex_z0));
+            pMesh->vertices.push_back(std::bit_cast<float, uint32_t>(vertex_x1));
+            pMesh->vertices.push_back(std::bit_cast<float, uint32_t>(vertex_y1));
+            pMesh->vertices.push_back(std::bit_cast<float, uint32_t>(vertex_z1));
+            pMesh->vertices.push_back(std::bit_cast<float, uint32_t>(vertex_x2));
+            pMesh->vertices.push_back(std::bit_cast<float, uint32_t>(vertex_y2));
+            pMesh->vertices.push_back(std::bit_cast<float, uint32_t>(vertex_z2));
 
-            pMesh->normals.push_back(*(float*)&normal_x);
-            pMesh->normals.push_back(*(float*)&normal_y);
-            pMesh->normals.push_back(*(float*)&normal_z);
-            pMesh->normals.push_back(*(float*)&normal_x);
-            pMesh->normals.push_back(*(float*)&normal_y);
-            pMesh->normals.push_back(*(float*)&normal_z);
-            pMesh->normals.push_back(*(float*)&normal_x);
-            pMesh->normals.push_back(*(float*)&normal_y);
-            pMesh->normals.push_back(*(float*)&normal_z);
+            pMesh->normals.push_back(std::bit_cast<float, uint32_t>(normal_x));
+            pMesh->normals.push_back(std::bit_cast<float, uint32_t>(normal_y));
+            pMesh->normals.push_back(std::bit_cast<float, uint32_t>(normal_z));
+            pMesh->normals.push_back(std::bit_cast<float, uint32_t>(normal_x));
+            pMesh->normals.push_back(std::bit_cast<float, uint32_t>(normal_y));
+            pMesh->normals.push_back(std::bit_cast<float, uint32_t>(normal_z));
+            pMesh->normals.push_back(std::bit_cast<float, uint32_t>(normal_x));
+            pMesh->normals.push_back(std::bit_cast<float, uint32_t>(normal_y));
+            pMesh->normals.push_back(std::bit_cast<float, uint32_t>(normal_z));
 
             // TODO: STL texture coordinates generating. Currently not generated!
             pMesh->textureCoordinates.push_back(0.0f);
@@ -827,6 +830,8 @@ int __ulMeshLoadSTL(ul_mesh_t* pMesh, const char* path) {
     delete[] line;
     delete[] source_buffer;
     fclose(mesh_file);
+
+    return 1;
 }
 
 /**

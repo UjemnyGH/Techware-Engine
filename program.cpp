@@ -1,24 +1,40 @@
 #include "engine/src/entry_point.hpp"
+#include "engine/src/renderer.hpp"
 
 class MainScene : public te::Scene {
 public:
     MainScene() {
         mName = "MainScene";
+        mInitializeWithWindow = true;
         te::SceneHandler::pGlobal->AddScene(this);
         TE_INFO("Added main scene")
         te::SceneHandler::pGlobal->SwitchScene(this);
     }
 
+    te::SimpleRenderer renderer = te::SimpleRenderer("MainSceneRenderer");
+    te::GLShader defVS, defFS;
+
+    te::GLUniformBuffer cameraUniform;
+
+    Matrix4<real> mProjection;
+    Matrix4<real> mView;
+
     virtual void Start() override {
-        printf("Start\n");
+        defVS.LoadShader("engine/shader_default/def_simple_shader_light.vs");
+        defFS.LoadShader("engine/shader_default/def_simple_shader_light.fs");
 
-        uint8_t bytes[8] = {
-            1, 2, 3, 4, 5, 6, 7, 8
-        };
+        renderer.AttachShaders({defVS, defFS});
 
-        uint64_t val = *(uint64_t*)&bytes[0];
+        cameraUniform.Allocate(2 * sizeof(real) * 16);
 
-        printf("%lx\n", val);
+        cameraUniform.UniformBinding(1);
+
+        cameraUniform.BindData(0, sizeof(Matrix4<real>), mProjection.m);
+        cameraUniform.BindData(16 * sizeof(real), sizeof(Matrix4<real>), mView.m);
+
+        te::LayerHandler::pGlobal->AddLayer(&renderer);
+
+        TE_INFO("Main scene started")
     }
 
     virtual void Update() override {

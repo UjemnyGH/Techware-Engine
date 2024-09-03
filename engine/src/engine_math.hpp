@@ -6,6 +6,7 @@
 #include <cstring>
 #include <algorithm>
 #include <iostream>
+#include <bit>
 
 typedef float real;
 
@@ -32,9 +33,11 @@ real ToRadians(real degrees) { return degrees * M_PI_BY_180; }
  */
 float RSqrt32(float x) {
     float y = x * 0.5f;
-    long i = *reinterpret_cast<long*>(&x);
+    uint32_t i = std::bit_cast<uint32_t, float>(x);
+    //*reinterpret_cast<uint32_t*>(&x);
     i = 0x5F375A86 - (i >> 1);
-    float r = *reinterpret_cast<float*>(&i);
+    float r = std::bit_cast<float, uint32_t>(i);
+    //*reinterpret_cast<float*>(&i);
     r *= (1.5f - r * r * y);
     r *= (1.5f - r * r * y);
 
@@ -47,11 +50,13 @@ float RSqrt32(float x) {
  * @param x 
  * @return long double
  */
-long double RSqrt64(long double x) {
-    long double y = x * 0.5f;
-    long long i = *reinterpret_cast<long long*>(&x);
+long double RSqrt64(double x) {
+    double y = x * 0.5f;
+    long i = std::bit_cast<long, double>(x);
+    //*reinterpret_cast<unsigned long long*>(&x);
     i = 0x5FE6EB50C7B537A9 - (i >> 1);
-    long double r = *reinterpret_cast<long double*>(&i);
+    double r = std::bit_cast<double, long>(i);
+    //*reinterpret_cast<long double*>(&i);
     r *= (1.5 - r * r * y);
     r *= (1.5 - r * r * y);
 
@@ -71,9 +76,9 @@ class Vector {
 public:
     T x, y, z, w;
 
-    Vector<T>() { x = y = z = w = static_cast<T>(0); }
-    Vector<T>(T init) { x = y = z = w = init; }
-    Vector<T>(T _x, T _y, T _z = static_cast<T>(0), T _w = static_cast<T>(0)) : x(_x), y(_y), z(_z), w(_w) {}
+    Vector() { x = y = z = w = static_cast<T>(0); }
+    Vector(T init) { x = y = z = w = init; }
+    Vector(T _x, T _y, T _z = static_cast<T>(0), T _w = static_cast<T>(0)) : x(_x), y(_y), z(_z), w(_w) {}
 
     inline Vector<T> operator+(T v) { return Vector<T>(this->x + v, this->y + v, this->z + v, this->w + v); }
     inline Vector<T> operator-(T v) { return Vector<T>(this->x - v, this->y - v, this->z - v, this->w - v); }
@@ -238,9 +243,9 @@ class Matrix3 {
 public:
     T m[9];
 
-    Matrix3<T>() { Fill(static_cast<T>(0)); }
-    Matrix3<T>(T init) { Fill(init); }
-    Matrix3<T>(Matrix3<T> const& v) { std::memcpy(m, v.m, 9 * sizeof(T)); }
+    Matrix3() { Fill(static_cast<T>(0)); }
+    Matrix3(T init) { Fill(init); }
+    Matrix3(Matrix3<T> const& v) { std::memcpy(m, v.m, 9 * sizeof(T)); }
 
     void Fill(T value) { std::fill(m, m + 9, value); }
 
@@ -340,8 +345,8 @@ class Matrix4 {
 public:
     T m[16];
 
-    Matrix4<T>() { Fill(static_cast<T>(0)); }
-    Matrix4<T>(T v) { Fill(v); }
+    Matrix4() { Fill(static_cast<T>(0)); }
+    Matrix4(T v) { Fill(v); }
 
     /**
      * @brief Fill entire matrix with value

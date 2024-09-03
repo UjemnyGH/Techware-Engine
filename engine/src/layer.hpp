@@ -110,7 +110,21 @@ namespace te {
         }
 
         void AddLayer(Layer* pLayer) {
+            TE_INFO("Added new layer " << pLayer->GetName() << "-" << pLayer->GetTag() << "-" << pLayer->GetType() << " F: " << std::hex << (uint32_t)pLayer->GetFlags() << " @ " << pLayer << std::dec)
+
             mLayerPtr.push_back(pLayer);
+
+            if(pLayer->GetFlags() & LF_Awake && !(pLayer->GetFlags() & LF_Awakend)) {
+                pLayer->Awake();
+
+                pLayer->SetFlag(pLayer->GetFlags() | LF_Awakend);
+            }
+
+            if(pLayer->GetFlags() & LF_Start && !(pLayer->GetFlags() & LF_Started)) {
+                pLayer->Start();
+
+                pLayer->SetFlag(pLayer->GetFlags() | LF_Start);
+            }
         }
 
         void RemoveLayer(Layer* pLayer) {
@@ -167,7 +181,7 @@ namespace te {
          */
         void LayersStart() {
             for(Layer* l : mLayerPtr) {
-                if(l->GetFlags() & LF_Start && !(l->GetFlags() & LF_Start)) {
+                if(l->GetFlags() & LF_Start && !(l->GetFlags() & LF_Started)) {
                     l->Start();
 
                     l->SetFlag(l->GetFlags() | LF_Start);

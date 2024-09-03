@@ -27,22 +27,22 @@ namespace te {
         void LoadShader(std::string file) {
             uint32_t type;
             
-            if(file.find(".vert") != -1 || file.find(".vs") != -1) {
+            if(file.find(".vert") != std::string::npos || file.find(".vs") != std::string::npos) {
                 type = GL_VERTEX_SHADER;
             }
-            else if(file.find(".frag") != -1 || file.find(".fs") != -1) {
+            else if(file.find(".frag") != std::string::npos || file.find(".fs") != std::string::npos) {
                 type = GL_FRAGMENT_SHADER;
             }
-            else if(file.find(".geom") != -1 || file.find(".gs") != -1) {
+            else if(file.find(".geom") != std::string::npos || file.find(".gs") != std::string::npos) {
                 type = GL_GEOMETRY_SHADER;
             } 
-            else if(file.find(".comp") != -1 || file.find(".cs") != -1) {
+            else if(file.find(".comp") != std::string::npos || file.find(".cs") != std::string::npos) {
                 type = GL_COMPUTE_SHADER;
             }
-            else if(file.find(".tesc") != -1 || file.find(".tcs") != -1) {
+            else if(file.find(".tesc") != std::string::npos || file.find(".tcs") != std::string::npos) {
                 type = GL_TESS_CONTROL_SHADER;
             }
-            else if(file.find(".tese") != -1 || file.find(".tes") != -1) {
+            else if(file.find(".tese") != std::string::npos || file.find(".tes") != std::string::npos) {
                 type = GL_TESS_EVALUATION_SHADER;
             }
             else {
@@ -148,8 +148,10 @@ namespace te {
     } GLArray;
 
     typedef struct GLBufferPtrData {
-        uint32_t mIndex, mDimmension, mSize, mOffset;
+        size_t mIndex, mDimmension, mSize, mOffset;
         uint32_t mType = GL_FLOAT;
+
+        GLBufferPtrData(size_t index, size_t dimm, size_t size, size_t offset) : mIndex(index), mDimmension(dimm), mSize(size), mOffset(offset) {}
     } GLBufferPtrData;
 
     typedef struct GLBuffer {
@@ -200,6 +202,61 @@ namespace te {
             }
         }
     } GLBuffer;
+
+    typedef struct GLUniformBuffer {
+        uint32_t mId;
+        bool mCreated = false;
+
+        void Init() {
+            if(!mCreated) {
+                glGenBuffers(1, &mId);
+
+                mCreated = true;
+            }
+        }
+
+        void Bind() {
+            Init();
+
+            glBindBuffer(GL_UNIFORM_BUFFER, mId);
+        }
+
+        void Unbind() {
+            glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        }
+
+        void Allocate(uint32_t bytes) {
+            Bind();
+
+            glBufferData(GL_UNIFORM_BUFFER, bytes, nullptr, GL_DYNAMIC_DRAW);
+            
+            Unbind();
+        }
+
+        void UniformBinding(uint32_t binding) {
+            Bind();
+            
+            glBindBufferBase(GL_UNIFORM_BUFFER, binding, mId);
+
+            Unbind();
+        }
+
+        void BindData(uint32_t offset, uint32_t size, void* ptr) {
+            Bind();
+
+            glBufferSubData(GL_UNIFORM_BUFFER, offset, size, ptr);
+
+            Unbind();
+        }
+
+        ~GLUniformBuffer() {
+            if(mCreated) {
+                glDeleteBuffers(1, &mId);
+
+                mCreated = false;
+            }
+        }
+    } GLUniformBuffer;
 
     typedef struct GLTexture {
         uint32_t mId;

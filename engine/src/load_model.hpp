@@ -5,6 +5,7 @@
 #include "core.hpp"
 #include "ul_mesh.hpp"
 #include "buffers_gl.hpp"
+#include "engine_math.hpp"
 
 namespace te {
     struct ModelData {
@@ -15,9 +16,9 @@ namespace te {
         ul_mesh_t mesh;
         uint32_t type = ULMtype_END_DONT_USE;
 
-        if(path.find(".ply") != -1) type = ULMtype_ply;
-        else if(path.find(".obj") != -1) type = ULMtype_obj;
-        else if(path.find(".stl") != -1) type = ULMtype_stl;
+        if(path.find(".ply") != std::string::npos) type = ULMtype_ply;
+        else if(path.find(".obj") != std::string::npos) type = ULMtype_obj;
+        else if(path.find(".stl") != std::string::npos) type = ULMtype_stl;
         else {
             TE_WARN("Cannot find desired model extension type in \"" << path << "\", returning nothing!")
 
@@ -34,6 +35,81 @@ namespace te {
 
         return result;
     }
+
+    struct RenderedModel {
+        ModelData mData;
+        std::vector<float> mJoined;
+        int32_t mColorMapLayer = 0, mSpecularMapLayer = -1, mNormalMapLayer = -1, mGlossMapLayer = -1, mCavityMapLayer = -1, mTranslucencyMapLayer = -1;
+        RVec mColor = RVec(1.0, 1.0, 1.0, 1.0);
+        Transform mTransform;
+        GLTexture* mUsedTexturePtr;
+
+        size_t mVerticesSize, mTextureCoordsSize, mNormalsSize, mColorSize;
+        size_t mVerticesOffset, mTextureCoordsOffset, mNormalsOffset, mColorOffset;
+
+        GLArray mArray;
+        GLBuffer mBuffer;
+
+        void UniformShaderProgram(GLProgram* pSp) {
+            pSp->Use();
+
+            glUniform1f(glGetUniformLocation(pSp->mId, "uColorMapLayer"), (float)mColorMapLayer);
+            glUniform1f(glGetUniformLocation(pSp->mId, "uSpecularMapLayer"), (float)mSpecularMapLayer);
+            glUniform1f(glGetUniformLocation(pSp->mId, "uNormalMapLayer"), (float)mNormalMapLayer);
+            glUniform1f(glGetUniformLocation(pSp->mId, "uGlossMapLayer"), (float)mGlossMapLayer);
+            glUniform1f(glGetUniformLocation(pSp->mId, "uCavityMapLayer"), (float)mCavityMapLayer);
+            glUniform1f(glGetUniformLocation(pSp->mId, "uTranslucencyMapLayer"), (float)mTranslucencyMapLayer);
+
+            pSp->Unuse();
+        }
+
+        void BindBuffer() {
+            mArray.Bind();
+
+            mBuffer.BindData(mJoined);
+
+            mBuffer.BindPtr(
+                {
+                    GLBufferPtrData(0, 3, mVerticesSize, mVerticesOffset),
+                    GLBufferPtrData(1, 2, mTextureCoordsSize, mTextureCoordsOffset),
+                    GLBufferPtrData(2, 3, mNormalsSize, mNormalsOffset),
+                    GLBufferPtrData(5, 4, mColorSize, mColorOffset)
+                }
+            );
+
+            mArray.Unbind();
+        }
+
+        void RejoinModel() {
+            mJoined.clear();
+
+            mVerticesSize = 3 * sizeof(float);
+            mTextureCoordsSize = 2 * sizeof(float);
+            mNormalsSize = 3 * sizeof(float);
+            mColorSize = 4 * sizeof(float);
+
+            mVerticesOffset = mJoined.size() * sizeof(float);
+
+            std::copy(mData.mVertices.begin(), mData.mVertices.end(), std::back_inserter(mJoined));
+
+            mTextureCoordsOffset = mJoined.size() * sizeof(float);
+
+            std::copy(mData.mTextureCoordinates.begin(), mData.mTextureCoordinates.end(), std::back_inserter(mJoined));
+
+            mNormalsOffset = mJoined.size() * sizeof(float);
+
+            std::copy(mData.mNormals.begin(), mData.mNormals.end(), std::back_inserter(mJoined));
+
+            mColorOffset = mJoined.size() * sizeof(float);
+
+            for(size_t i = 0; i < mTextureCoordsOffset / sizeof(float) / 3; i++) {
+                mJoined.push_back(mColor.x);
+                mJoined.push_back(mColor.y);
+                mJoined.push_back(mColor.z);
+                mJoined.push_back(mColor.w);
+            }
+        }
+    };
 
     struct RenderData {
         std::vector<ModelData> mOriginalModelData;
@@ -53,12 +129,12 @@ namespace te {
             mBuffer.BindData(mJoinedData);
 
             mBuffer.BindPtr(std::vector<GLBufferPtrData>({
-                (GLBufferPtrData){0, 3, mVerticesSize, mVerticesOffset},
-                (GLBufferPtrData){1, 2, mTextureCoordsSize, mTextureCoordsOffset},
-                (GLBufferPtrData){2, 3, mNormalsSize, mNormalsOffset},
-                (GLBufferPtrData){3, 1, mTextureIdSize, mTextureIdOffset},
-                (GLBufferPtrData){4, 1, mTextureLayerSize, mTextureLayerOffset},
-                (GLBufferPtrData){5, 4, mColorSize, mColorOffset}
+                GLBufferPtrData(0, 3, mVerticesSize, mVerticesOffset),
+                GLBufferPtrData(1, 2, mTextureCoordsSize, mTextureCoordsOffset),
+                GLBufferPtrData(2, 3, mNormalsSize, mNormalsOffset),
+                GLBufferPtrData(3, 1, mTextureIdSize, mTextureIdOffset),
+                GLBufferPtrData(4, 1, mTextureLayerSize, mTextureLayerOffset),
+                GLBufferPtrData(5, 4, mColorSize, mColorOffset)
             }));
 
             mArray.Unbind();

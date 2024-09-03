@@ -11,6 +11,7 @@ namespace te {
         bool mInitializedDONTTOUCH = false;
 
     public:
+        bool mInitializeWithWindow = false;
         bool IsInitialized() { return mInitializedDONTTOUCH; }
         void __DONT_TOUCH_Initialize() { mInitializedDONTTOUCH = true; }
 
@@ -34,7 +35,7 @@ namespace te {
         static SceneHandler* pGlobal;
 
         SceneHandler() {
-            SetFlag(LF_Update | LF_LateUpdate | LF_FixedUpdate | LF_End);
+            SetFlag(LF_Update | LF_LateUpdate | LF_FixedUpdate | LF_End | LF_Awake | LF_Start);
          
             mName = "SceneHandler" + std::to_string(GetNextGlobalNumber());
             
@@ -55,9 +56,12 @@ namespace te {
         }
 
         void SwitchScene(Scene* pScene) {
+            TE_INFO("Switching scene to " << pScene->GetName() << " @ " << pScene)
             std::vector<Scene*>::iterator iter = std::find(mScenePtr.begin(), mScenePtr.end(), pScene);
 
-            if(!(*iter)->IsInitialized()) {
+            if(!(*iter)->IsInitialized() && !(*iter)->mInitializeWithWindow) {
+                TE_INFO("Scene ain`t initialized, trying to initialize scene!")
+
                 (*iter)->Awake();
                 (*iter)->Start();
                 (*iter)->__DONT_TOUCH_Initialize();
@@ -78,7 +82,11 @@ namespace te {
                 i++;
             }
 
-            if(!mScenePtr[i]->IsInitialized()) {
+            TE_INFO("Switching scene to " << mScenePtr[i]->GetName() << " @ " << mScenePtr[i])
+
+            if(!mScenePtr[i]->IsInitialized() && !mScenePtr[i]->mInitializeWithWindow) {
+                TE_INFO("Scene ain`t initialized, trying to initialize scene!")
+
                 mScenePtr[i]->Awake();
                 mScenePtr[i]->Start();
                 mScenePtr[i]->__DONT_TOUCH_Initialize();
@@ -86,6 +94,14 @@ namespace te {
 
             mCurrentScene = nullptr;
             mCurrentScene = mScenePtr[i];
+        }
+
+        virtual void Awake() override {
+            if(mCurrentScene && mCurrentScene->mInitializeWithWindow) mCurrentScene->Awake();
+        }
+
+        virtual void Start() override {
+            if(mCurrentScene && mCurrentScene->mInitializeWithWindow) mCurrentScene->Start();
         }
 
         virtual void Update() override {
